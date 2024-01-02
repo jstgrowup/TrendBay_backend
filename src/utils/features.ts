@@ -1,5 +1,8 @@
 import mongoose, { Document } from "mongoose";
 
+import { Product } from "../models/product.js";
+import { InvalidateCacheProps, OrderItemType } from "../types/types.js";
+
 export const connectDB = (uri: string) => {
   mongoose
     .connect(uri, {
