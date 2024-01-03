@@ -6,8 +6,10 @@ import morgan from "morgan";
 
 import cors from "cors";
 
-// Importing Routes
 import userRoute from "./routes/user.js";
+import productRoute from "./routes/products.js";
+
+import { errorMiddleware } from "./middlewares/error.js";
 
 config({
   path: "./.env",
@@ -15,7 +17,6 @@ config({
 
 const port = process.env.PORT || 4000;
 const mongoURI = process.env.MONGO_URI || "";
-const stripeKey = process.env.STRIPE_KEY || "";
 
 connectDB(mongoURI);
 
@@ -31,6 +32,11 @@ app.get("/", (req, res) => {
 
 // Using Routes
 app.use("/api/v1/user", userRoute);
+// products router
+app.use("/api/v1/product", productRoute);
+app.use(errorMiddleware);
+// now the uploads folder should be treated as a static folder
+app.use("/uploads",express.static("uploads"));
 
 app.listen(port, () => {
   console.log(`Express is working on http://localhost:${port}`);

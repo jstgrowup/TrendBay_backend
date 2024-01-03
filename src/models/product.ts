@@ -8,19 +8,20 @@ const schema = new mongoose.Schema(
     },
     photo: {
       type: String,
-      required: [true, "Please enter Photo"],
+      required: [true, "Photo is required"],
     },
     price: {
       type: Number,
-      required: [true, "Please enter Price"],
+      required: [true, "Price is required"],
     },
     stock: {
       type: Number,
-      required: [true, "Please enter Stock"],
+      required: [true, "Stock is required"],
     },
     category: {
       type: String,
-      required: [true, "Please enter Category"],
+      required: [true, "Product Category is required"],
+      lowercase: true,
       trim: true,
     },
   },
@@ -29,4 +30,4 @@ const schema = new mongoose.Schema(
   }
 );
 
-export const Product = mongoose.model("Product", schema);
+export const Product = mongoose.model("Products", schema);
