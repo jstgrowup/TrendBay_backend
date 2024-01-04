@@ -1,7 +1,7 @@
 import { InvalidateCacheType, OrderItemsType } from "../types/types.js";
 import { Product } from "../models/product.model.js";
 import { redisCache } from "../app.js";
-
+import { faker } from "@faker-js/faker";
 export const deleteCache = async ({
   product,
   order,
@@ -33,4 +33,24 @@ export const reduceStock = async (orderItems: OrderItemsType[]) => {
       { new: true }
     );
   }
+};
+export const createRandomData = async (count: number = 10) => {
+  const products = [];
+
+  for (let i = 0; i < count; i++) {
+    const product = {
+      name: faker.commerce.productName(),
+      photo: "uploadsdec34618-5702-4cbe-9a63-99dbf23d8ded.jpg",
+      price: faker.commerce.price({ min: 1500, max: 80000, dec: 0 }),
+      stock: faker.commerce.price({ min: 0, max: 100, dec: 0 }),
+      category: faker.commerce.department(),
+      createdAt: new Date(faker.date.past()),
+      updatedAt: new Date(faker.date.recent()),
+      __v: 0,
+    };
+
+    products.push(product);
+  }
+  await Product.create(products);
+  console.log({ succecss: true });
 };

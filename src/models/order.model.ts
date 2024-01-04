@@ -4,11 +4,11 @@ const schema = new mongoose.Schema(
   {
     shippingInfo: {
       type: mongoose.Types.ObjectId,
-      ref: "AddressDetails",
+      ref: "addressdetails",
     },
     user: {
       type: String,
-      ref: "Users",
+      ref: "users",
       required: [true, "User is required"],
     },
     subtotal: {
@@ -17,19 +17,19 @@ const schema = new mongoose.Schema(
     },
     tax: {
       type: Number,
-      required: [true, "Subtotal is required"],
+      required: [true, "Tax is required"],
     },
     shippingCharges: {
       type: Number,
-      required: [true, "Subtotal is required"],
+      required: [true, "Shipping charges is required"],
     },
     discount: {
       type: Number,
-      required: [true, "Subtotal is required"],
+      required: [true, "discount is required"],
     },
     total: {
       type: Number,
-      required: [true, "Stock is required"],
+      required: [true, "Total is required"],
     },
     status: {
       type: String,
@@ -39,7 +39,7 @@ const schema = new mongoose.Schema(
     orderItems: [
       {
         type: mongoose.Types.ObjectId,
-        ref: "OrderItems",
+        ref: "orderitems",
       },
     ],
   },
@@ -48,4 +48,4 @@ const schema = new mongoose.Schema(
   }
 );
 
-export const Order = mongoose.model("Orders", schema);
+export const Order = mongoose.model("orders", schema);

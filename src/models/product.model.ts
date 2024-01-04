@@ -30,4 +30,4 @@ const schema = new mongoose.Schema(
   }
 );
 
-export const Product = mongoose.model("Products", schema);
+export const Product = mongoose.model("products", schema);

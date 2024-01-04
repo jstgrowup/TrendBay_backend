@@ -16,4 +16,4 @@ const schema = new mongoose.Schema(
   }
 );
 
-export const OrderItems = mongoose.model("OrderItems", schema);
+export const OrderItems = mongoose.model("orderitems", schema);

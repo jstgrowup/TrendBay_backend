@@ -57,7 +57,7 @@ const schema = new mongoose.Schema(
 
 schema.virtual("age").get(function () {
   const today = new Date();
-  const dob = this.dob;
+  const dob: Date = this.dob;
   let age = today.getFullYear() - dob.getFullYear();
 
   if (
@@ -70,4 +70,4 @@ schema.virtual("age").get(function () {
   return age;
 });
 
-export const User = mongoose.model<IUser>("User", schema);
+export const User = mongoose.model<IUser>("users", schema);

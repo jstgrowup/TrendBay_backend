@@ -10,6 +10,7 @@ import { deleteCache, reduceStock } from "../utils/helpers.js";
 import { Order } from "../models/order.model.js";
 import { AddressDetails } from "../models/address-details.model.js";
 import { OrderItems } from "../models/order-Item.model.js";
+import mongoose from "mongoose";
 export const newOrder = TryCatch(
   async (
     req: Request<{}, {}, NewOrderRequestBody>,
@@ -89,12 +90,134 @@ export const newOrder = TryCatch(
     });
   }
 );
-export const getAllOrders = TryCatch(
+export const getMyOrders = TryCatch(
   async (req: Request, res: Response, next: NextFunction) => {
-    
+    const { id } = req.query;
+    const cachedOrders = await redisCache.get(`my-orders-${id}`);
+    if (cachedOrders) {
+      const cachedOrdersData = JSON.parse(cachedOrders);
+      return res.status(200).json({
+        success: true,
+        cachedOrdersData,
+      });
+    }
+    const ordersDataFromDb = await Order.aggregate([
+      {
+        $match: {
+          user: id,
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      {
+        $unwind: "$user",
+      },
+      {
+        $lookup: {
+          from: "orderitems",
+          localField: "orderItems",
+          foreignField: "_id",
+          as: "orderItems",
+        },
+      },
+    ]);
+    await redisCache.set(`my-orders-${id}`, JSON.stringify(ordersDataFromDb));
     return res.status(201).json({
       success: true,
-      message: "Order Placed Successfully",
+      ordersDataFromDb,
+    });
+  }
+);
+export const getAllOrders = TryCatch(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const cachedOrders = await redisCache.get("orders");
+    if (cachedOrders) {
+      const ordersData = JSON.parse(cachedOrders);
+      return res.status(200).json({
+        success: true,
+        ordersData,
+      });
+    }
+    const ordersData = await Order.aggregate([
+      {
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      {
+        $unwind: "$user",
+      },
+      {
+        $lookup: {
+          from: "orderitems",
+          localField: "orderItems",
+          foreignField: "_id",
+          as: "orderItems",
+        },
+      },
+    ]);
+    await redisCache.set("orders", JSON.stringify(ordersData));
+    return res.status(201).json({
+      success: true,
+      ordersData,
+    });
+  }
+);
+export const getSingleOrder = TryCatch(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { orderId } = req.params;
+    const cachedOrder = await redisCache.get(`order-${orderId}`);
+    if (cachedOrder) {
+      const orderData = JSON.parse(cachedOrder);
+      return res.status(200).json({
+        success: true,
+        orderData,
+      });
+    }
+    const ordersIndividualData = await Order.findById(orderId);
+    if (!ordersIndividualData) {
+      return next(new ErrorHandler("Invalid Id", 400));
+    }
+    const orderData = await Order.aggregate([
+      {
+        $match: {
+          _id: new mongoose.Types.ObjectId(orderId),
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      {
+        $unwind: "$user",
+      },
+      {
+        $lookup: {
+          from: "orderitems",
+          localField: "orderItems",
+          foreignField: "_id",
+          as: "orderItems",
+        },
+      },
+    ]);
+
+    await redisCache.set(`order-${orderId}`, JSON.stringify(orderData));
+    return res.status(201).json({
+      success: true,
+      orderData,
     });
   }
 );

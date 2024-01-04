@@ -28,4 +28,4 @@ const schema = new mongoose.Schema(
   }
 );
 
-export const AddressDetails = mongoose.model("AddressDetails", schema);
+export const AddressDetails = mongoose.model("addressdetails", schema);
