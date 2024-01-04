@@ -10,7 +10,7 @@ import ErrorHandler from "../utils/utility-class.js";
 import { Product } from "../models/product.model.js";
 import { rm } from "fs";
 import { redisCache } from "../app.js";
-import { deleteCache } from "../utils/features.js";
+import { deleteCache } from "../utils/helpers.js";
 
 export const getAllLatestProducts = TryCatch(async (req, res, next) => {
   const latestProducts = await redisCache.get("latest-products");

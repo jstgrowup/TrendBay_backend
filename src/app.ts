@@ -1,5 +1,5 @@
 import express from "express";
-import { connectDB } from "./utils/features.js";
+import connectDB from "./utils/database.js";
 import { config } from "dotenv";
 import morgan from "morgan";
 import cors from "cors";

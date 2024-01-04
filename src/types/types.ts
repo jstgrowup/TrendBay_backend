@@ -41,8 +41,19 @@ export type InvalidateCacheType = {
   order?: boolean;
   admin?: boolean;
 };
+export type AddressDetailsType = {
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  pincode: number;
+};
+export type OrderItemsType = {
+  productId: mongoose.Types.ObjectId;
+  quantity: number;
+};
 export interface NewOrderRequestBody {
-  shippingInfo: mongoose.Types.ObjectId;
+  shippingInfo: AddressDetailsType;
   user: mongoose.Types.ObjectId;
   subtotal: number;
   tax: number;
@@ -50,12 +61,5 @@ export interface NewOrderRequestBody {
   discount: number;
   total: number;
   status: string;
-  orderItems: mongoose.Types.ObjectId[];
+  orderItems: OrderItemsType[];
 }
-export type AddressDetails = {
-  address: string;
-  city: string;
-  state: string;
-  country: string;
-  pincode: number;
-};
