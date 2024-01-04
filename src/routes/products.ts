@@ -27,6 +27,6 @@ app
   .delete(adminOnly, deleteProduct)
   .put(adminOnly, singleUplaod, updateProduct);
 
-//   search
+//  search
 
 export default app;

@@ -9,6 +9,7 @@ import { TryCatch } from "../middlewares/error.js";
 import ErrorHandler from "../utils/utility-class.js";
 import { Product } from "../models/product.js";
 import { rm } from "fs";
+import { redisCache } from "../app.js";
 
 export const newProduct = TryCatch(
   async (
@@ -43,21 +44,48 @@ export const newProduct = TryCatch(
   }
 );
 export const getAllLatestProducts = TryCatch(async (req, res, next) => {
+  const latestProducts = await redisCache.get("latest-products");
+  if (latestProducts) {
+    const productsData = JSON.parse(latestProducts);
+    return res.status(200).json({
+      success: true,
+      productsData,
+    });
+  }
   const products = await Product.find({}).sort({ createdAt: -1 }).limit(5);
+  await redisCache.set("latest-products", JSON.stringify(products));
   return res.status(200).json({
     success: true,
     products,
   });
 });
 export const getAllUniqueCategories = TryCatch(async (req, res, next) => {
-  const products = await Product.distinct("category");
+  const cacheCategories = await redisCache.get("categories");
+  if (cacheCategories) {
+    const categoriesData = JSON.parse(cacheCategories);
+    return res.status(200).json({
+      success: true,
+      categoriesData,
+    });
+  }
+  const categories = await Product.distinct("category");
+  await redisCache.set("categories", JSON.stringify(categories));
   return res.status(200).json({
     success: true,
-    products,
+    categories,
   });
 });
 export const getAllProductsForAdmin = TryCatch(async (req, res, next) => {
+  const cacheAdminProducts = await redisCache.get("admin-products");
+  if (cacheAdminProducts) {
+    const categoriesData = JSON.parse(cacheAdminProducts);
+    return res.status(200).json({
+      success: true,
+      categoriesData,
+    });
+  }
   const products = await Product.find({});
+  await redisCache.set("admin-products", JSON.stringify(products));
   return res.status(200).json({
     success: true,
     products,
@@ -65,10 +93,19 @@ export const getAllProductsForAdmin = TryCatch(async (req, res, next) => {
 });
 export const getProduct = TryCatch(async (req, res, next) => {
   const { productId } = req.params;
+  const cacheProduct = await redisCache.get(`product-${productId}`);
+  if (cacheProduct) {
+    const productData = JSON.parse(cacheProduct);
+    return res.status(200).json({
+      success: true,
+      productData,
+    });
+  }
   const product = await Product.findById(productId);
   if (!product) {
     return next(new ErrorHandler("Invalid Id", 400));
   }
+  await redisCache.set(`product-${productId}`, JSON.stringify(product));
   return res.status(200).json({
     success: true,
     product,
@@ -82,7 +119,7 @@ export const deleteProduct = TryCatch(async (req, res, next) => {
   }
   if (product.photo) {
     rm(product.photo!, () => {
-      console.log("photo deleted successfully");
+      console.log("Photo deleted successfully");
     });
   }
   await Product.findByIdAndDelete(productId);
