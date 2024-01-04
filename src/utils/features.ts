@@ -1,6 +1,7 @@
 import mongoose, { Document } from "mongoose";
 import { InvalidateCacheType } from "../types/types.js";
-import { Product } from "../models/product.js";
+import { Product } from "../models/product.model.js";
+import { redisCache } from "../app.js";
 
 export const connectDB = (uri: string) => {
   mongoose
@@ -10,7 +11,7 @@ export const connectDB = (uri: string) => {
     .then((c) => console.log(`DB Connected`))
     .catch((e) => console.log(e));
 };
-export const invalidateCache = async ({
+export const deleteCache = async ({
   product,
   order,
   admin,
@@ -25,6 +26,11 @@ export const invalidateCache = async ({
     productIds.forEach((element) => {
       productKeys.push(`product-${element._id}`);
     });
-    
+
+    redisCache.del(`${productKeys.join(" ")}`);
+  }
+  if (order) {
+  }
+  if (admin) {
   }
 };

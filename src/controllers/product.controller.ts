@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { User } from "../models/user.js";
+import { User } from "../models/user.model.js";
 import {
   BaseQuery,
   NewUserRequestBodyForProduct,
@@ -7,42 +7,11 @@ import {
 } from "../types/types.js";
 import { TryCatch } from "../middlewares/error.js";
 import ErrorHandler from "../utils/utility-class.js";
-import { Product } from "../models/product.js";
+import { Product } from "../models/product.model.js";
 import { rm } from "fs";
 import { redisCache } from "../app.js";
+import { deleteCache } from "../utils/features.js";
 
-export const newProduct = TryCatch(
-  async (
-    req: Request<{}, {}, NewUserRequestBodyForProduct>,
-    res: Response,
-    next: NextFunction
-  ) => {
-    const { name, price, stock, category } = req.body;
-    const photo = req.file;
-    if (!photo) return next(new ErrorHandler("Please add photo", 400));
-    if (!name || !price || !stock || !category) {
-      rm(photo.path, () => {
-        console.log("Deleted Successfully");
-      });
-    }
-    await Product.create({
-      name,
-      price,
-      stock,
-      category,
-      photo: photo?.path,
-    });
-
-    // if (!_id || !name || !email || !photo || !gender || !dob)
-    //   return next(new ErrorHandler("Please fill all the details", 400));
-
-    // console.log("user:", user);
-    return res.status(201).json({
-      success: true,
-      message: "Product Created Successfully",
-    });
-  }
-);
 export const getAllLatestProducts = TryCatch(async (req, res, next) => {
   const latestProducts = await redisCache.get("latest-products");
   if (latestProducts) {
@@ -123,11 +92,45 @@ export const deleteProduct = TryCatch(async (req, res, next) => {
     });
   }
   await Product.findByIdAndDelete(productId);
+  await deleteCache({ product: true });
+  // while deletion also we need to update the redis and clean everything
   return res.status(200).json({
     success: true,
     message: "Product deleted successfully",
   });
 });
+export const newProduct = TryCatch(
+  async (
+    req: Request<{}, {}, NewUserRequestBodyForProduct>,
+    res: Response,
+    next: NextFunction
+  ) => {
+    const { name, price, stock, category } = req.body;
+    const photo = req.file;
+    if (!photo) return next(new ErrorHandler("Please add photo", 400));
+    if (!name || !price || !stock || !category) {
+      rm(photo.path, () => {
+        console.log("Deleted Successfully");
+      });
+    }
+    if (!name || !photo || !stock || !category)
+      return next(new ErrorHandler("Please fill all the details", 400));
+    await Product.create({
+      name,
+      price,
+      stock,
+      category,
+      photo: photo?.path,
+    });
+
+    await deleteCache({ product: true });
+    // what this will do is it will clear the cache so now on every get requests it will again reload the cache and put it into the redis
+    return res.status(201).json({
+      success: true,
+      message: "Product Created Successfully",
+    });
+  }
+);
 export const updateProduct = TryCatch(async (req, res, next) => {
   const { productId } = req.params;
   const { name, price, stock, category } = req.body;
@@ -148,7 +151,8 @@ export const updateProduct = TryCatch(async (req, res, next) => {
   if (stock) product.stock = stock;
   if (category) product.category = category;
   await product.save();
-
+  await deleteCache({ product: true });
+  // while updation also we need to update the redis and dum everything
   return res.status(200).json({
     success: true,
     message: "Product updated successfully",
