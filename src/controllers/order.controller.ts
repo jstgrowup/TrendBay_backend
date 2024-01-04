@@ -89,3 +89,12 @@ export const newOrder = TryCatch(
     });
   }
 );
+export const getAllOrders = TryCatch(
+  async (req: Request, res: Response, next: NextFunction) => {
+    
+    return res.status(201).json({
+      success: true,
+      message: "Order Placed Successfully",
+    });
+  }
+);
