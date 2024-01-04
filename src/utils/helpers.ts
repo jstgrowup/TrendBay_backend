@@ -21,6 +21,11 @@ export const deleteCache = async ({
     redisCache.del(`${productKeys.join(" ")}`);
   }
   if (order) {
+    const orderKeys: string[] = [
+      "latest-products",
+      "categories",
+      "admin-products",
+    ];
   }
   if (admin) {
   }

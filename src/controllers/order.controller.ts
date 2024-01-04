@@ -1,10 +1,9 @@
 import { NextFunction, Request, Response } from "express";
-import { User } from "../models/user.model.js";
+
 import { NewOrderRequestBody } from "../types/types.js";
 import { TryCatch } from "../middlewares/error.js";
 import ErrorHandler from "../utils/utility-class.js";
-import { Product } from "../models/product.model.js";
-import { rm } from "fs";
+
 import { redisCache } from "../app.js";
 import { deleteCache, reduceStock } from "../utils/helpers.js";
 import { Order } from "../models/order.model.js";
@@ -93,12 +92,13 @@ export const newOrder = TryCatch(
 export const getMyOrders = TryCatch(
   async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.query;
+    let data;
     const cachedOrders = await redisCache.get(`my-orders-${id}`);
     if (cachedOrders) {
-      const cachedOrdersData = JSON.parse(cachedOrders);
+      data = JSON.parse(cachedOrders);
       return res.status(200).json({
         success: true,
-        cachedOrdersData,
+        data,
       });
     }
     const ordersDataFromDb = await Order.aggregate([
@@ -130,7 +130,7 @@ export const getMyOrders = TryCatch(
     await redisCache.set(`my-orders-${id}`, JSON.stringify(ordersDataFromDb));
     return res.status(201).json({
       success: true,
-      ordersDataFromDb,
+      data: ordersDataFromDb,
     });
   }
 );
@@ -141,7 +141,7 @@ export const getAllOrders = TryCatch(
       const ordersData = JSON.parse(cachedOrders);
       return res.status(200).json({
         success: true,
-        ordersData,
+        data: ordersData,
       });
     }
     const ordersData = await Order.aggregate([
@@ -168,7 +168,7 @@ export const getAllOrders = TryCatch(
     await redisCache.set("orders", JSON.stringify(ordersData));
     return res.status(201).json({
       success: true,
-      ordersData,
+      data: ordersData,
     });
   }
 );
@@ -180,7 +180,7 @@ export const getSingleOrder = TryCatch(
       const orderData = JSON.parse(cachedOrder);
       return res.status(200).json({
         success: true,
-        orderData,
+        data: orderData,
       });
     }
     const ordersIndividualData = await Order.findById(orderId);
@@ -217,7 +217,79 @@ export const getSingleOrder = TryCatch(
     await redisCache.set(`order-${orderId}`, JSON.stringify(orderData));
     return res.status(201).json({
       success: true,
-      orderData,
+      data: orderData,
+    });
+  }
+);
+export const updateOrder = TryCatch(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { orderId } = req.params;
+    const orderDetails = await Order.findById(orderId);
+    if (!orderDetails) return next(new ErrorHandler("Invalid Id", 400));
+    await Order.updateOne({ _id: orderId }, [
+      {
+        $set: {
+          status: {
+            $switch: {
+              branches: [
+                { case: { $eq: ["$status", "Processing"] }, then: "Shipped" },
+                { case: { $eq: ["$status", "Shipped"] }, then: "Delivered" },
+              ],
+              default: "Delivered",
+            },
+          },
+        },
+      },
+    ]);
+    //   await Order.updateOne(
+    // This part of the query specifies that we are performing an update operation on the Order collection. It updates a single document based on the specified filter.
+    // { _id: orderId },
+    // The filter specifies which document to update. In this case, it's selecting the document with the specified _id (orderId).
+    // [ { $set: { status: { $switch: { branches: [ ... ], default: "Delivered", }, }, }, }, ]
+    // This is the update part of the query. It uses the $set operator to set the value of the status field based on the result of a $switch statement.
+    // $set Operator:
+    // The $set operator updates the value of the specified field (status in this case) in the document.
+    // status: { $switch: { branches: [ ... ], default: "Delivered", }, },
+    // This part of the query sets the value of the status field using the $switch operator, which allows for conditional branching.
+    // `$switch Operator:
+    // The $switch operator provides a way to perform conditional logic. It has branches, each specifying a condition and a value to return if the condition is true.
+    // branches: [ { case: { $eq: ["$status", "Processing"] }, then: "Shipped" }, { case: { $eq: ["$status", "Shipped"] }, then: "Delivered" }, ],
+    // The branches array contains individual conditions and their corresponding values. In this example, there are two branches:
+    // If the status is equal to "Processing", set it to "Shipped".
+    // If the status is equal to "Shipped", set it to "Delivered".
+    // default: "Delivered",
+    // The default specifies the value to use if none of the conditions in the branches array is true. In this case, if the current status doesn't match any of the specified conditions, it defaults to "Delivered".
+    deleteCache({ product: false, order: true, admin: true });
+    return res.status(201).json({
+      success: true,
+      message: "Order Updated Successfully",
+    });
+  }
+);
+export const deleteOrder = TryCatch(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { orderId } = req.params;
+    const orderDetails = await Order.findById(orderId);
+    if (!orderDetails) return next(new ErrorHandler("Invalid Id", 400));
+    const shippingDetails = await AddressDetails.findById(
+      orderDetails?.shippingInfo
+    );
+    if (!shippingDetails)
+      return next(new ErrorHandler("No Shipping details Found", 400));
+    await AddressDetails.findByIdAndDelete(orderDetails.shippingInfo);
+    if (!orderDetails.orderItems || orderDetails.orderItems.length === 0) {
+      return next(new ErrorHandler("No Order Items Found", 400));
+    }
+    await OrderItems.deleteMany({
+      _id: {
+        $in: orderDetails?.orderItems,
+      },
+    });
+    await Order.findByIdAndDelete(orderId);
+    await deleteCache({ product: false, order: true, admin: true });
+    return res.status(201).json({
+      success: true,
+      message: "Order Deleted Successfully",
     });
   }
 );
