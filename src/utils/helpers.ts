@@ -2,32 +2,46 @@ import { InvalidateCacheType, OrderItemsType } from "../types/types.js";
 import { Product } from "../models/product.model.js";
 import { redisCache } from "../app.js";
 import { faker } from "@faker-js/faker";
+import { Order } from "../models/order.model.js";
 export const deleteCache = async ({
   product,
   order,
   admin,
+  userId,
+  orderId,
+  productIds,
 }: InvalidateCacheType) => {
-  if (product) {
-    const productKeys: string[] = [
-      "latest-products",
-      "categories",
-      "admin-products",
-    ];
-    const productIds = await Product.find({}).select("_id");
-    productIds.forEach((element) => {
-      productKeys.push(`product-${element._id}`);
-    });
+  try {
+    if (product) {
+      const productKeys: string[] = [
+        "latest-products",
+        "categories",
+        "admin-products",
+      ];
+      productIds &&
+        productIds!.forEach((element) => {
+          productKeys.push(`product-${element}`);
+        });
 
-    redisCache.del(`${productKeys.join(" ")}`);
-  }
-  if (order) {
-    const orderKeys: string[] = [
-      "latest-products",
-      "categories",
-      "admin-products",
-    ];
-  }
-  if (admin) {
+      await redisCache.del(`${productKeys.join(" ")}`);
+    }
+    if (order) {
+      const allOrders = await Order.find({}).select("_id");
+
+      const orderKeys: string[] = [
+        "orders",
+        `my-orders-${userId}`,
+        `order-${orderId}`,
+      ];
+
+      console.log("orderKeys:", orderKeys.join(" "));
+      redisCache.del(`${orderKeys.join(" ")}`);
+    }
+
+    if (admin) {
+    }
+  } catch (error) {
+    console.log("error:", error);
   }
 };
 export const reduceStock = async (orderItems: OrderItemsType[]) => {

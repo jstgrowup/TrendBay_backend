@@ -135,7 +135,7 @@ export const updateProduct = TryCatch(async (req, res, next) => {
   const { productId } = req.params;
   const { name, price, stock, category } = req.body;
   const photo = req.file;
-  console.log("photo:", photo);
+
   const product = await Product.findById(productId);
   if (!product) {
     return next(new ErrorHandler("Invalid Id", 400));
@@ -151,7 +151,7 @@ export const updateProduct = TryCatch(async (req, res, next) => {
   if (stock) product.stock = stock;
   if (category) product.category = category;
   await product.save();
-  await deleteCache({ product: true });
+  await deleteCache({ product: true, productIds: [String(product._id)] });
   // while updation also we need to update the redis and dum everything
   return res.status(200).json({
     success: true,

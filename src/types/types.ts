@@ -40,6 +40,9 @@ export type InvalidateCacheType = {
   product?: boolean;
   order?: boolean;
   admin?: boolean;
+  userId?: string;
+  orderId?: string;
+  productIds?: string[];
 };
 export type AddressDetailsType = {
   address: string;

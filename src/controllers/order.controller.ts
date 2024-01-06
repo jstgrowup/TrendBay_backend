@@ -1,10 +1,9 @@
 import { NextFunction, Request, Response } from "express";
-
 import { NewOrderRequestBody } from "../types/types.js";
 import { TryCatch } from "../middlewares/error.js";
 import ErrorHandler from "../utils/utility-class.js";
-
 import { redisCache } from "../app.js";
+
 import { deleteCache, reduceStock } from "../utils/helpers.js";
 import { Order } from "../models/order.model.js";
 import { AddressDetails } from "../models/address-details.model.js";
@@ -68,7 +67,7 @@ export const newOrder = TryCatch(
     }
     const orderItemsData = await OrderItems.insertMany(orderItems);
     // --------------------------------------------
-    await Order.create({
+    const newOrder = await Order.create({
       shippingInfo: addressDetails._id,
       user,
       subtotal,
@@ -81,7 +80,13 @@ export const newOrder = TryCatch(
     });
     await reduceStock(orderItems);
     // reduce the stock in the products
-    await deleteCache({ product: true, order: true, admin: true });
+    await deleteCache({
+      product: true,
+      order: true,
+      admin: true,
+      userId: newOrder.user,
+      productIds: orderItems.map((el) => String(el.productId)),
+    });
     // after the stock update we have to update the stock in the cache as well
     return res.status(201).json({
       success: true,
@@ -91,9 +96,10 @@ export const newOrder = TryCatch(
 );
 export const getMyOrders = TryCatch(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.query;
+    const { id: userId } = req.query;
     let data;
-    const cachedOrders = await redisCache.get(`my-orders-${id}`);
+    const cachedOrders = await redisCache.get(`my-orders-${userId}`);
+
     if (cachedOrders) {
       data = JSON.parse(cachedOrders);
       return res.status(200).json({
@@ -104,7 +110,7 @@ export const getMyOrders = TryCatch(
     const ordersDataFromDb = await Order.aggregate([
       {
         $match: {
-          user: id,
+          user: userId,
         },
       },
       {
@@ -127,7 +133,10 @@ export const getMyOrders = TryCatch(
         },
       },
     ]);
-    await redisCache.set(`my-orders-${id}`, JSON.stringify(ordersDataFromDb));
+    await redisCache.set(
+      `my-orders-${userId}`,
+      JSON.stringify(ordersDataFromDb)
+    );
     return res.status(201).json({
       success: true,
       data: ordersDataFromDb,
@@ -136,40 +145,45 @@ export const getMyOrders = TryCatch(
 );
 export const getAllOrders = TryCatch(
   async (req: Request, res: Response, next: NextFunction) => {
-    const cachedOrders = await redisCache.get("orders");
-    if (cachedOrders) {
-      const ordersData = JSON.parse(cachedOrders);
-      return res.status(200).json({
+    try {
+      const cachedOrders = await redisCache.get("orders");
+      if (cachedOrders) {
+        const ordersData = JSON.parse(cachedOrders);
+        return res.status(200).json({
+          success: true,
+          data: ordersData,
+        });
+      }
+      const ordersData = await Order.aggregate([
+        {
+          $lookup: {
+            from: "users",
+            localField: "user",
+            foreignField: "_id",
+            as: "user",
+          },
+        },
+        {
+          $unwind: "$user",
+        },
+        {
+          $lookup: {
+            from: "orderitems",
+            localField: "orderItems",
+            foreignField: "_id",
+            as: "orderItems",
+          },
+        },
+      ]);
+
+      await redisCache.set("orders", JSON.stringify(ordersData));
+      return res.status(201).json({
         success: true,
         data: ordersData,
       });
+    } catch (error) {
+      console.log("error:", error);
     }
-    const ordersData = await Order.aggregate([
-      {
-        $lookup: {
-          from: "users",
-          localField: "user",
-          foreignField: "_id",
-          as: "user",
-        },
-      },
-      {
-        $unwind: "$user",
-      },
-      {
-        $lookup: {
-          from: "orderitems",
-          localField: "orderItems",
-          foreignField: "_id",
-          as: "orderItems",
-        },
-      },
-    ]);
-    await redisCache.set("orders", JSON.stringify(ordersData));
-    return res.status(201).json({
-      success: true,
-      data: ordersData,
-    });
   }
 );
 export const getSingleOrder = TryCatch(
@@ -241,7 +255,7 @@ export const updateOrder = TryCatch(
         },
       },
     ]);
-    //   await Order.updateOne(
+    // await Order.updateOne(
     // This part of the query specifies that we are performing an update operation on the Order collection. It updates a single document based on the specified filter.
     // { _id: orderId },
     // The filter specifies which document to update. In this case, it's selecting the document with the specified _id (orderId).
@@ -259,7 +273,13 @@ export const updateOrder = TryCatch(
     // If the status is equal to "Shipped", set it to "Delivered".
     // default: "Delivered",
     // The default specifies the value to use if none of the conditions in the branches array is true. In this case, if the current status doesn't match any of the specified conditions, it defaults to "Delivered".
-    deleteCache({ product: false, order: true, admin: true });
+    await deleteCache({
+      product: false,
+      order: true,
+      admin: true,
+      userId: orderDetails.user,
+      orderId: String(orderDetails._id),
+    });
     return res.status(201).json({
       success: true,
       message: "Order Updated Successfully",
@@ -286,7 +306,13 @@ export const deleteOrder = TryCatch(
       },
     });
     await Order.findByIdAndDelete(orderId);
-    await deleteCache({ product: false, order: true, admin: true });
+    await deleteCache({
+      product: false,
+      order: true,
+      admin: true,
+      userId: orderDetails.user,
+      orderId: String(orderDetails._id),
+    });
     return res.status(201).json({
       success: true,
       message: "Order Deleted Successfully",
