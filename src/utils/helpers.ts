@@ -13,11 +13,13 @@ export const deleteCache = async ({
 }: InvalidateCacheType) => {
   try {
     if (product) {
+      console.log("product:", product);
       const productKeys: string[] = [
         "latest-products",
         "categories",
         "admin-products",
       ];
+
       productIds &&
         productIds!.forEach((element) => {
           productKeys.push(`product-${element}`);
@@ -26,16 +28,17 @@ export const deleteCache = async ({
       await redisCache.del(`${productKeys.join(" ")}`);
     }
     if (order) {
-      const allOrders = await Order.find({}).select("_id");
+      // console.log("order:", order);
+      // const allOrders = await Order.find({}).select("_id");
 
       const orderKeys: string[] = [
         "orders",
         `my-orders-${userId}`,
         `order-${orderId}`,
       ];
-
-      console.log("orderKeys:", orderKeys.join(" "));
-      redisCache.del(`${orderKeys.join(" ")}`);
+      // 
+      console.log('${orderKeys.join(" ")}:', orderKeys.join(" "));
+      redisCache.del(`my-orders-string orders`);
     }
 
     if (admin) {
