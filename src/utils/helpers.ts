@@ -9,36 +9,30 @@ export const deleteCache = async ({
   admin,
   userId,
   orderId,
-  productIds,
+  productId,
 }: InvalidateCacheType) => {
   try {
     if (product) {
-      console.log("product:", product);
       const productKeys: string[] = [
         "latest-products",
         "categories",
         "admin-products",
+        `product-${productId}`,
       ];
 
-      productIds &&
-        productIds!.forEach((element) => {
-          productKeys.push(`product-${element}`);
-        });
-
-      await redisCache.del(`${productKeys.join(" ")}`);
+      productKeys.map((item) => {
+        redisCache.del(item);
+      });
     }
     if (order) {
-      // console.log("order:", order);
-      // const allOrders = await Order.find({}).select("_id");
-
       const orderKeys: string[] = [
         "orders",
         `my-orders-${userId}`,
         `order-${orderId}`,
       ];
-      // 
-      console.log('${orderKeys.join(" ")}:', orderKeys.join(" "));
-      redisCache.del(`my-orders-string orders`);
+      orderKeys.map((item) => {
+        redisCache.del(item);
+      });
     }
 
     if (admin) {

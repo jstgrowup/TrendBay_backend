@@ -85,7 +85,6 @@ export const newOrder = TryCatch(
       order: true,
       admin: true,
       userId: newOrder.user,
-      productIds: orderItems.map((el) => String(el.productId)),
     });
     // after the stock update we have to update the stock in the cache as well
     return res.status(201).json({
@@ -147,6 +146,7 @@ export const getAllOrders = TryCatch(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const cachedOrders = await redisCache.get("orders");
+
       if (cachedOrders) {
         const ordersData = JSON.parse(cachedOrders);
         return res.status(200).json({
@@ -154,6 +154,8 @@ export const getAllOrders = TryCatch(
           data: ordersData,
         });
       }
+      console.log("coming here");
+
       const ordersData = await Order.aggregate([
         {
           $lookup: {

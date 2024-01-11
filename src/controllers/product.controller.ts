@@ -92,7 +92,7 @@ export const deleteProduct = TryCatch(async (req, res, next) => {
     });
   }
   await Product.findByIdAndDelete(productId);
-  await deleteCache({ product: true });
+  await deleteCache({ product: true, productId: productId });
   // while deletion also we need to update the redis and clean everything
   return res.status(200).json({
     success: true,
@@ -151,7 +151,7 @@ export const updateProduct = TryCatch(async (req, res, next) => {
   if (stock) product.stock = stock;
   if (category) product.category = category;
   await product.save();
-  await deleteCache({ product: true, productIds: [String(product._id)] });
+  await deleteCache({ product: true, productId: productId });
   // while updation also we need to update the redis and dum everything
   return res.status(200).json({
     success: true,
