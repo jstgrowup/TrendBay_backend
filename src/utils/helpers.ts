@@ -70,3 +70,8 @@ export const createRandomData = async (count: number = 10) => {
   await Product.create(products);
   console.log({ succecss: true });
 };
+export const calculatePercentage = (num1: number, num2: number) => {
+  if (num2 === 0) return num1 * 100;
+  const percent = ((num1 - num2) / num2) * 100;
+  return Number(percent.toFixed(0));
+};

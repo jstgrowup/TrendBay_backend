@@ -8,6 +8,8 @@ import productRoute from "./routes/products.route.js";
 import orderRouter from "./routes/orders.route.js";
 import { errorMiddleware } from "./middlewares/error.js";
 import Redis from "ioredis";
+import paymentRouter from "./routes/payment.route.js";
+import dashboardRouter from "./routes/stats.route.js";
 export const redisCache = new Redis.default();
 
 config({
@@ -36,6 +38,11 @@ app.use("/api/v1/user", userRoute);
 app.use("/api/v1/product", productRoute);
 // order route
 app.use("/api/v1/order", orderRouter);
+// payment route
+app.use("/api/v1/payment", paymentRouter);
+// dashboard route
+app.use("/api/v1/dashboard", dashboardRouter);
+
 app.use(errorMiddleware);
 // now the uploads folder should be treated as a static folder
 app.use("/uploads", express.static("uploads"));
