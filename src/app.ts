@@ -10,6 +10,7 @@ import { errorMiddleware } from "./middlewares/error.js";
 import Redis from "ioredis";
 import paymentRouter from "./routes/payment.route.js";
 import dashboardRouter from "./routes/stats.route.js";
+import Stripe from "stripe";
 export const redisCache = new Redis.default();
 
 config({
@@ -18,7 +19,8 @@ config({
 
 const port = process.env.PORT || 4000;
 const mongoURI = process.env.MONGO_URI || "";
-
+const stripeKey = process.env.STRIPE_KEY || "";
+export const stripe = new Stripe(stripeKey);
 connectDB(mongoURI);
 
 const app = express();

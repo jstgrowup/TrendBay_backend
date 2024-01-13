@@ -9,10 +9,27 @@ import { TryCatch } from "../middlewares/error.js";
 import ErrorHandler from "../utils/utility-class.js";
 import { Product } from "../models/product.model.js";
 import { rm } from "fs";
-import { redisCache } from "../app.js";
+import { redisCache, stripe } from "../app.js";
 import { deleteCache } from "../utils/helpers.js";
 import { Coupon } from "../models/coupon.model.js";
+export const createPayment = TryCatch(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { amount } = req.body;
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Number(amount) * 100,
+      currency: "inr",
+    });
 
+    if (!amount) {
+      return next(new ErrorHandler("Please provide amount", 400));
+    }
+
+    return res.status(200).json({
+      success: true,
+      clientSecret: paymentIntent.client_secret,
+    });
+  }
+);
 export const newCoupon = TryCatch(
   async (req: Request, res: Response, next: NextFunction) => {
     const { couponCode, amount } = req.body;

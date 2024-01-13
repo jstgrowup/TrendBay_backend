@@ -16,7 +16,6 @@ import { Order } from "../models/order.model.js";
 
 export const getDashboardStats = TryCatch(
   async (req: Request, res: Response, next: NextFunction) => {
-    let stats;
     const adminStats = await redisCache.get("admin-stats");
     if (adminStats) {
       const adminData = JSON.parse(adminStats);
@@ -27,7 +26,6 @@ export const getDashboardStats = TryCatch(
     }
 
     const today = moment();
-    console.log("today:", today);
 
     const thisMonth = {
       start: moment().startOf("month"),
@@ -77,7 +75,6 @@ export const getDashboardStats = TryCatch(
         $lte: lastMonth.end,
       },
     });
-
     const promiseForLastSixMoonthsOrders = Order.find({
       createdAt: {
         $gte: lastSixMonths,
@@ -97,6 +94,7 @@ export const getDashboardStats = TryCatch(
       allOrdersAmount,
       lastSixMonthsOrders,
       categories,
+      femalePopulation,
     ] = await Promise.all([
       promiseForthisMonthProducts,
       promiseForlastMonthProducts,
@@ -109,8 +107,8 @@ export const getDashboardStats = TryCatch(
       Order.find({}).select("total"),
       promiseForLastSixMoonthsOrders,
       Product.distinct("category"),
+      User.countDocuments({ gender: "female" }),
     ]);
-    console.log("lastSixMonthsOrders:", lastSixMonthsOrders);
 
     const userPercentage = calculatePercentage(
       thisMonthUsers.length,
@@ -145,10 +143,25 @@ export const getDashboardStats = TryCatch(
     const categoriesCountPromise = categories.map((category) => {
       return Product.countDocuments({ category });
     });
-    const categoryCOunt = await Promise.all(categoriesCountPromise);
-    const dashboardCount = {
+    const categoryCount = await Promise.all(categoriesCountPromise);
+    const categoryCountWithCategoryName: any = [];
+    categories.forEach((item, i) => {
+      categoryCountWithCategoryName.push({
+        [item]: Math.round((categoryCount[i] / productsCount) * 100),
+      });
+    });
+    const dashboard = {
+      thisMonthRevenue,
+      userPercentage,
+      productPercentage,
+      orderPercentage,
+      categoryCount: categoryCountWithCategoryName,
       revenue,
       users: usersCount,
+      userRatio: {
+        femalePopulation,
+        malePopulation: usersCount - femalePopulation,
+      },
       products: productsCount,
       orders: allOrdersAmount.length,
       chart: {
@@ -156,20 +169,26 @@ export const getDashboardStats = TryCatch(
         bargraphOrdersForRevenue,
       },
     };
+    await redisCache.set("admin-stats", JSON.stringify(dashboard));
     res.status(200).json({
       success: true,
-      stats: {
-        thisMonthRevenue,
-        userPercentage,
-        productPercentage,
-        orderPercentage,
-        dashboardCount,
-      },
+      dashboard,
     });
   }
 );
 export const getPieCharts = TryCatch(
-  async (req: Request, res: Response, next: NextFunction) => {}
+  async (req: Request, res: Response, next: NextFunction) => {
+    const pieChartStats = await redisCache.get("admin-pie-chart");
+    if (pieChartStats) {
+      const piechartData = JSON.parse(pieChartStats);
+      return res.status(200).json({
+        success: true,
+        piechartData,
+      });
+    }
+
+    
+  }
 );
 export const getBarCharts = TryCatch(
   async (req: Request, res: Response, next: NextFunction) => {}
