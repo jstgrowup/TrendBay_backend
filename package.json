@@ -9,7 +9,8 @@
     "start": "node dist/app.js",
     "build": "tsc",
     "watch": "tsc -w",
-    "dev": "nodemon dist/app.js --watch"
+    "dev": "nodemon dist/app.js --watch",
+    "watch-and-dev":"tsc -w & nodemon dist/app.js --watch"
   },
   "author": "",
   "license": "ISC",

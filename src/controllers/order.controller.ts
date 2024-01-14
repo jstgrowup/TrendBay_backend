@@ -4,18 +4,21 @@ import { TryCatch } from "../middlewares/error.js";
 import ErrorHandler from "../utils/utility-class.js";
 import { redisCache } from "../app.js";
 
+
 import { deleteCache, reduceStock } from "../utils/helpers.js";
 import { Order } from "../models/order.model.js";
 import { AddressDetails } from "../models/address-details.model.js";
 import { OrderItems } from "../models/order-Item.model.js";
 import mongoose from "mongoose";
 export const newOrder = TryCatch(
+
   async (
     req: Request<{}, {}, NewOrderRequestBody>,
     res: Response,
     next: NextFunction
-  ) => {
-    const {
+    ) => {
+     
+      const {
       shippingInfo,
       user,
       subtotal,
@@ -145,6 +148,7 @@ export const getMyOrders = TryCatch(
 export const getAllOrders = TryCatch(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      console.log("hello")
       const cachedOrders = await redisCache.get("orders");
 
       if (cachedOrders) {
